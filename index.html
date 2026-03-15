@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BRAHMHASTRA| Your AI Coding Partner</title>
+
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            /* background-color: #1e1e2e; */
+            background-color: #2c5364;
+            color: #cdd6f4;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Overlay for modals */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: #242438;
+            width: 90%;
+            max-width: 450px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 2rem;
+            color: #cdd6f4;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+            color: #7f5af0;
+            text-align: center;
+        }
+
+        .form-group {
+            margin: 1rem 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #a6adc8;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.7rem;
+            border: 1px solid #45475a;
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #7f5af0;
+        }
+
+        .modal-footer {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .switch-link {
+            color: #7f5af0;
+            cursor: pointer;
+        }
+
+        button {
+            background: #7f5af0;
+            color: white;
+            border: none;
+            padding: 0.6rem 1rem;
+            font-size: 0.95rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: #916dd5;
+        }
+
+        button.secondary {
+            background: #2cb67d;
+        }
+
+        button.danger {
+            background: #e95555;
+        }
+
+        button.small {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.85rem;
+        }
+
+        header {
+            background-color: #181825;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            background: linear-gradient(90deg, #7f5af0, #2cb67d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+        }
+
+        .ai-badge {
+            display: inline-block;
+            background: #7f5af0;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .controls select {
+            padding: 0.5rem;
+            border: none;
+            border-radius: 6px;
+            background: #313244;
+            color: #cdd6f4;
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+            padding: 1.2rem;
+            gap: 1.2rem;
+            height: calc(100vh - 120px);
+        }
+
+        .editor-container {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .suggestions-container {
+            flex: 1;
+            background-color: #242438;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            background: #313244;
+        }
+
+        .tab {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #a6adc8;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: #cdd6f4;
+            border-bottom: 3px solid #7f5af0;
+            font-weight: 500;
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            line-height: 1.7;
+            color: #bac2de;
+        }
+
+        .placeholder {
+            color: #a6adc8;
+            font-style: italic;
+        }
+
+        .chat-input {
+            padding: 0.8rem;
+            background: #313244;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 0.6rem;
+            border: none;
+            border-radius: 6px;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .chat-input button {
+            background: #7f5af0;
+            color: white;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .editor-header,
+        .selection-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #313244;
+            padding: 0.8rem;
+            border-radius: 10px 10px 0 0;
+            border-bottom: 1px solid #45475a;
+        }
+
+        .editor-header span {
+            font-weight: 500;
+            color: #bac2de;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        #editor {
+            height: 100%;
+            border-radius: 0 0 10px 10px;
+            overflow: hidden;
+            background: #1e1e2e;
+        }
+
+        .loading {
+            color: #2cb67d;
+            font-style: italic;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1rem;
+            color: #a6adc8;
+            font-size: 0.9rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .history-item {
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            background: #313244;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .history-item:hover {
+            background: #45475a;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="overlay">
+        <div class="modal">
+            <h2>Continue to CodeWhiz AI</h2>
+            <p style="margin-bottom: 1rem; font-size: 0.95rem;">Log in or create an account to save your chat history.</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" required />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required />
+                </div>
+                <button type="submit">Log In</button>
+                <div class="modal-footer">
+                    <span>No account?</span>
+                    <span class="switch-link" onclick="showModal('signupModal')">Sign Up</span>
+                </div>
+            </form>
+            <button style="width:100%; margin-top: 1rem;" type="button" onclick="closeModal('loginModal')">Continue as Guest</button>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signupModal" class="overlay">
+        <div class="modal">
+            <h2>Create Account</h2>
+            <form id="signupForm">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="signupName" required />
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signupEmail" required />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signupPassword" required />
+                </div>
+                <button type="submit">Sign Up</button>
+                <div class="modal-footer">
+                    <span>Already have an account?</span>
+                    <span class="switch-link" onclick="showModal('loginModal')">Log In</span>
+                </div>
+            </form>
+            <button style="width:100%; margin-top: 1rem;" type="button" onclick="closeModal('signupModal')">Continue as Guest</button>
+        </div>
+    </div>
+
+    <!-- App -->
+    <header>
+        <h1><B>BRAMHASTRA  AI</B><span class="ai-badge">PRO</span></h1>
+        <div class="controls">
+            <select id="language-select">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
+                <option value="html">HTML</option>
+                <option value="go">Go</option>
+            </select>
+            <button id="authBtn" type="button">🔐 Login / Signup</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="editor-container">
+            <div class="editor-header">
+                <span id="file-name">main.py</span>
+                <div class="actions">
+                    <button id="gen-btn" type="button">✨ Generate</button>
+                    <button id="explain-btn" type="button" class="secondary">💬 Explain</button>
+                    <button id="translate-btn" type="button" class="small">🔄 Translate</button>
+                </div>
+            </div>
+            <div   id="editor"><H5  class="secondary">Your coding hub to innovate, collaborate, and inspire the world with every line you write</H5>
+</div>
+
+            <div class="selection-actions hidden" id="selection-tools">
+                <span>💡 Selected Code</span>
+                <div class="actions">
+                    <button id="refactor-btn" type="button" class="small">🧹 Refactor</button>
+                    <button id="test-btn" type="button" class="small secondary">🧪 Test</button>
+                    <button id="doc-btn" type="button" class="small">📝 Docs</button>
+                    <button id="fix-btn" type="button" class="small danger">🐞 Fix</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="suggestions-container">
+            <div class="tabs">
+                <div class="tab active" data-tab="consolebot">🤖 ConsoleBot</div>
+                <div class="tab" data-tab="history">📜 History</div>
+            </div>
+
+            <div id="consolebot" class="tab-content">
+                <div id="consolebot-messages"
+                    style="height: 300px; overflow-y: auto; padding: 0.5rem; font-size: 0.95rem; font-family: 'Fira Code', monospace;">
+                    <p><strong>ConsoleBot:</strong> Ready! Select a language and ask me to explain, generate, fix, or translate code.</p>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="consolebot-input"
+                        placeholder="e.g. 'Make this async' or 'Fix performance'" />
+                    <button id="consolebot-send" type="button">Send</button>
+                </div>
+            </div>
+
+            <div id="history" class="tab-content hidden">
+                <h3 style="margin-bottom: 1rem; color: #bac2de;">Your Saved Chats</h3>
+                <div id="history-list">
+                    <p class="placeholder">Log in to save and view your chat history.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        Supports: Python • JavaScript • Java • C++ • HTML • Go • and more
+    </footer>
+
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/go/go.min.js"></script>
+
+    <script>
+        const BASE_URL = "http://127.0.0.1:8000"; // FastAPI backend
+        console.log("✅ Script loaded at: ", new Date().toISOString());
+
+window.addEventListener('beforeunload', (e) => {
+    console.log("🚨 Page is about to reload at: ", new Date().toISOString());
+    // This logs ONLY if a reload/navigation happens
+});
+        let currentUser = null;
+
+        // Escape HTML to prevent XSS
+        function escapeHTML(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '<')
+                .replace(/>/g, '>')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#x27;');
+        }
+
+        function showModal(id) {
+            document.querySelectorAll('.overlay').forEach(el => el.classList.remove('active'));
+            const modal = document.getElementById(id);
+            if (modal) modal.classList.add('active');
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('active');
+                if (id === 'loginModal') document.getElementById('loginPassword').value = '';
+                if (id === 'signupModal') document.getElementById('signupForm').reset();
+            }
+        }
+
+        function updateAuthUI() {
+            const authBtn = document.getElementById('authBtn');
+            if (!authBtn) return;
+
+            if (currentUser) {
+                authBtn.textContent = currentUser.name;
+                authBtn.onclick = () => {
+                    const confirmed = confirm(`Logged in as ${currentUser.name}. Click OK to log out.`);
+                    if (confirmed) {
+                        currentUser = null;
+                        localStorage.removeItem('currentUser');
+                        updateAuthUI();
+                        document.getElementById('history-list').innerHTML = '<p class="placeholder">Log in to save and view your chat history.</p>';
+                    }
+                };
+            } else {
+                authBtn.textContent = "🔐 Login / Signup";
+                authBtn.onclick = () => showModal('loginModal');
+            }
+        }
+
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved user
+            const saved = localStorage.getItem('currentUser');
+            if (saved) {
+                try { currentUser = JSON.parse(saved); } catch { localStorage.removeItem('currentUser'); }
+            }
+
+            updateAuthUI();
+
+            // ✅ Fixed: Use addEventListener with preventDefault
+            document.getElementById('loginForm')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                handleLogin(e);
+            });
+
+            document.getElementById('signupForm')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                handleSignup(e);
+            });
+
+            // ✅ Prevent Enter key in chat input from causing issues
+            document.getElementById('consolebot-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('consolebot-send').click();
+                }
+            });
+
+            // Expose modal helpers
+            window.closeModal = closeModal;
+            window.showModal = showModal;
+        });
+
+        // Login Handler
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            if (!email || !password) return alert('Please fill in all fields');
+
+            try {
+                const res = await fetch(`${BASE_URL}/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || "Invalid credentials");
+                }
+                const data = await res.json();
+                currentUser = { name: data.user.name, email: data.user.email };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                closeModal('loginModal');
+                updateAuthUI();
+                loadChatHistory();
+                alert(`🎉 Logged in as ${currentUser.name}!`);
+            } catch (err) {
+                alert('❌ ' + err.message);
+            }
+        }
+
+        // Signup Handler
+        async function handleSignup(e) {
+            e.preventDefault();
+            const name = document.getElementById('signupName').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            if (!name || !email || !password) return alert('Please fill in all fields');
+
+            try {
+                const res = await fetch(`${BASE_URL}/auth/signup`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, password })
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || "User already exists");
+                }
+                const data = await res.json();
+                currentUser = { name, email };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                closeModal('signupModal');
+                updateAuthUI();
+                saveChat("Welcome!", { explanation: "You're all set. Start coding!", code: "" }, "welcome");
+                alert(`✅ ${data.msg} Welcome, ${name}!`);
+            } catch (err) {
+                alert('❌ ' + err.message);
+            }
+        }
+
+        // Language Mapping
+        const langConfigs = {
+            python: { mode: 'python', name: 'Python', ext: 'py' },
+            javascript: { mode: 'javascript', name: 'JavaScript', ext: 'js' },
+            java: { mode: 'text/x-java', name: 'Java', ext: 'java' },
+            cpp: { mode: 'text/x-c++src', name: 'C++', ext: 'cpp' },
+            html: { mode: 'htmlmixed', name: 'HTML', ext: 'html' },
+            go: { mode: 'go', name: 'Go', ext: 'go' }
+        };
+
+        // CodeMirror Editor
+        const editor = CodeMirror(document.getElementById("editor"), {
+            lineNumbers: true,
+            mode: "python",
+            theme: "dracula",
+            indentUnit: 2,
+            smartIndent: true,
+            tabSize: 2,
+            indentWithTabs: false,
+            lineWrapping: true,
+            autofocus: true,
+            autoCloseBrackets: true,
+            matchBrackets: true
+        });
+
+        // Language Switcher
+        document.getElementById('language-select').onchange = function () {
+            const lang = this.value;
+            const config = langConfigs[lang];
+            editor.setOption("mode", config.mode);
+            document.getElementById('file-name').textContent = `main.${config.ext}`;
+        };
+
+        // Selection Tools
+        editor.on('cursorActivity', () => {
+            const selectedText = editor.getSelection();
+            document.getElementById('selection-tools').classList.toggle('hidden', !(selectedText && selectedText.length > 5));
+        });
+
+        // Tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(tabId).classList.remove('hidden');
+                if (tabId === 'history' && currentUser) loadChatHistory();
+            });
+        });
+
+        // Call AI
+        async function callAI(feature, code, lang = 'python', query = null, source_lang = null, target_lang = null) {
+            let url, body;
+
+            if (feature === "translate") {
+                url = `${BASE_URL}/ai/translate`;
+                body = { code, source_lang, target_lang };
+            } else if (feature === "generate") {
+                url = `${BASE_URL}/ai/generate`;
+                body = { query: query || "Write a function", lang };
+            } else if (feature === "chat") {
+                url = `${BASE_URL}/ai/chat`;
+                body = { query, code: code || "", lang };
+            } else {
+                url = `${BASE_URL}/ai/${feature}`;
+                body = { code, lang, query: query || "" };
+            }
+
+            try {
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.detail || "Request failed");
+                }
+
+                const data = await res.json();
+                return data.response || data;
+            } catch (err) {
+                console.error(`AI call failed [${feature}]`, err);
+                return { explanation: `❌ ${err.message}`, code: "" };
+            }
+        }
+
+        // Save chat
+        function saveChat(query, response, feature = "custom") {
+            if (!currentUser) return;
+            fetch(`${BASE_URL}/history/save/${currentUser.email}/${feature}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    query,
+                    response: response,
+                    lang: document.getElementById('language-select').value
+                })
+            }).catch(console.error);
+        }
+
+        // Load history
+        async function loadChatHistory() {
+            if (!currentUser) return;
+            const list = document.getElementById('history-list');
+            try {
+                const res = await fetch(`${BASE_URL}/history/${currentUser.email}`);
+                if (!res.ok) throw new Error("Failed to load");
+                const history = await res.json();
+
+                if (!history || history.length === 0) {
+                    list.innerHTML = '<p class="placeholder">No saved chats yet.</p>';
+                    return;
+                }
+
+                list.innerHTML = '';
+                history.slice(0, 20).forEach(chat => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    const qText = chat.query || '';
+                    const query = qText.length > 60 ? qText.substring(0, 60) + '...' : qText;
+                    item.innerHTML = `<strong>${escapeHTML(query)}</strong><br><small>${new Date(chat.timestamp).toLocaleString()}</small>`;
+                    item.onclick = () => {
+                        document.querySelector('[data-tab="consolebot"]').click();
+                        const messagesDiv = document.getElementById('consolebot-messages');
+                        const resp = chat.response || {};
+                        const historyItem = document.createElement('div');
+                        const explanation = (resp.explanation || '').replace(/\n/g, '<br>');
+                        const codeBlock = resp.code ? `
+        <pre style="background:#242438; padding:0.5rem; border-radius:6px; overflow:auto; margin-top:0.5rem; font-family: 'Fira Code', monospace;">
+            <code>${escapeHTML(resp.code)}</code>
+        </pre>` : '';
+                        historyItem.innerHTML = `
+    <p><strong>You:</strong> ${escapeHTML(chat.query || '')}</p>
+    <p><strong>ConsoleBot:</strong>
+        <div><b>Explanation:</b><br>${explanation}</div>
+        ${codeBlock}
+    </p>`;
+                        messagesDiv.appendChild(historyItem);
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    };
+                    list.appendChild(item);
+                });
+            } catch (err) {
+                list.innerHTML = '<p class="placeholder">Failed to load history.</p>';
+            }
+        }
+
+        // Append to ConsoleBot
+        function appendToConsoleBot(userMsg, aiResponse) {
+            const messagesDiv = document.getElementById('consolebot-messages');
+            document.querySelector('[data-tab="consolebot"]').click();
+
+            const chatGroup = document.createElement('div');
+            const safeUserMsg = escapeHTML(userMsg);
+
+            let aiHtml = '';
+            if (typeof aiResponse === 'string') {
+                aiHtml = `<p><strong>ConsoleBot:</strong> ${escapeHTML(aiResponse)}</p>`;
+            } else {
+                aiHtml = `
+            <p><strong>ConsoleBot:</strong>
+                <div><b>Explanation:</b><br>${(aiResponse.explanation || '').replace(/\n/g, '<br>')}</div>
+                ${aiResponse.code ? `
+                <pre style="background:#242438; padding:0.5rem; border-radius:6px; overflow:auto; margin-top:0.5rem; font-family: 'Fira Code', monospace;">
+                    <code>${escapeHTML(aiResponse.code)}</code>
+                </pre>` : ''}
+            </p>`;
+            }
+
+            chatGroup.innerHTML = `
+        <p><strong>You:</strong> ${safeUserMsg}</p>
+        ${aiHtml}
+    `;
+
+            messagesDiv.appendChild(chatGroup);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Button Handlers
+        document.getElementById('gen-btn').addEventListener('click', async () => {
+            const lang = document.getElementById('language-select').value;
+            const q = prompt("What code would you like to generate?", "A function to reverse a string");
+            if (!q) return;
+            appendToConsoleBot(q, "⏳ Processing...");
+            const resp = await callAI("generate", "", lang, q);
+            appendToConsoleBot(q, resp);
+            if (currentUser) saveChat(q, resp, "generate");
+        });
+
+        document.getElementById('explain-btn').addEventListener('click', async () => {
+            const code = editor.getValue();
+            const lang = document.getElementById('language-select').value;
+            const q = "Explain this code";
+            appendToConsoleBot(q, "⏳ Explaining...");
+            const resp = await callAI("explain", code, lang, q);
+            appendToConsoleBot(q, resp);
+            if (currentUser) saveChat(q, resp, "explain");
+        });
+
+        document.getElementById('refactor-btn').addEventListener('click', async () => {
+            const code = editor.getValue();
+            const lang = document.getElementById('language-select').value;
+            const q = "Refactor this code";
+            appendToConsoleBot(q, "⏳ Refactoring...");
+            const resp = await callAI("refactor", code, lang, q);
+            appendToConsoleBot(q, resp);
+            if (currentUser) saveChat(q, resp, "refactor");
+        });
+
+        document.getElementById('test-btn').addEventListener('click', async () => {
+            const code = editor.getValue();
+            const lang = document.getElementById('language-select').value;
+            const q = "Write unit tests for this code";
+            appendToConsoleBot(q, "⏳ Generating tests...");
+            const resp = await callAI("test", code, lang, q);
+            appendToConsoleBot(q, resp);
+            if (currentUser) saveChat(q, resp, "test");
+        });
+
+        document.getElementById('doc-btn').addEventListener('click', async () => {
+            const code = editor.getValue();
+            const lang = document.getElementById('language-select').value;
+            const q = "Add documentation (docstring)";
+            appendToConsoleBot(q, "⏳ Generating docs...");
+            const resp = await callAI("doc", code, lang, q);
+            appendToConsoleBot(q, resp);
+            if (currentUser) saveChat(q, resp, "doc");
+        });
+
+        document.getElementById('fix-btn').addEventListener('click', async () => {
+            const code = editor.getValue();
+            const lang = document.getElementById('language-select').value;
+            const q = "Fix bugs in this code";
+            appendToConsoleBot(q, "⏳ Fixing...");
+            const resp = await callAI("fix", code, lang, q);
+            appendToConsoleBot(q, resp);
+            if (currentUser) saveChat(q, resp, "fix");
+        });
+
+        document.getElementById('translate-btn').addEventListener('click', async () => {
+            const code = editor.getValue();
+            const source_lang = document.getElementById('language-select').value;
+            const target_lang = prompt("Translate to which language?", "javascript");
+            if (!target_lang || !langConfigs[target_lang]) {
+                alert(`Unsupported language: ${target_lang}`);
+                return;
+            }
+            const q = `Translate from ${source_lang} to ${target_lang}`;
+            appendToConsoleBot(q, "⏳ Translating...");
+            const resp = await callAI("translate", code, null, null, source_lang, target_lang);
+            appendToConsoleBot(q, resp);
+            if (currentUser) saveChat(q, resp, "translate");
+        });
+
+        document.getElementById('consolebot-send').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('consolebot-input').value.trim();
+            if (!input) return;
+            const code = editor.getValue();
+            const lang = document.getElementById('language-select').value;
+            appendToConsoleBot(input, "⏳ Thinking...");
+            const resp = await callAI("chat", code, lang, input);
+            appendToConsoleBot(input, resp);
+            if (currentUser) saveChat(input, resp, "chat");
+            document.getElementById('consolebot-input').value = '';
+        });
+    </script>
+</body>
+
+</html>
